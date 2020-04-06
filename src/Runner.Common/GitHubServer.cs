@@ -28,6 +28,7 @@ namespace GitHub.Runner.Common
     [ServiceLocator(Default = typeof(GitHubServer))]
     public interface IGitHubServer : IRunnerService
     {
+        Task ConnectAsync(Uri GithubUrl, string AccessToken);
         Task<GitHubResult> RevokeInstallationToken();
     }
 
