@@ -270,7 +270,12 @@ namespace GitHub.Runner.Worker
                     steps.AddRange(jobSteps);
 
                     // Check GITHUB_TOKEN
-                    var githubUrl = context.GetGitHubContext("url");
+                    var githubUrl = context.GetGitHubContext("api_url");
+                    if (string.IsNullOrEmpty(githubUrl))
+                    {
+                        githubUrl = "https://api.github.com";
+                    }
+
                     var githubToken = context.GetGitHubContext("token");
                     var githubServer = HostContext.GetService<IGitHubServer>();
                     await githubServer.ConnectAsync(new Uri(githubUrl), githubToken);
