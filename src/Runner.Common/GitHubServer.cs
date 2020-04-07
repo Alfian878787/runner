@@ -29,49 +29,15 @@ namespace GitHub.Runner.Common
     [ServiceLocator(Default = typeof(GitHubServer))]
     public interface IGitHubServer : IRunnerService
     {
-        Task ConnectAsync(Uri GithubUrl, string AccessToken);
-        Task<GitHubResult> RevokeInstallationToken();
+        Task<GitHubResult> RevokeInstallationToken(Uri GithubUrl, string AccessToken);
     }
 
     public class GitHubServer : RunnerService, IGitHubServer
     {
-        private Uri githubUrl;
-        private string accessToken;
-        public async Task ConnectAsync(Uri GithubUrl, string AccessToken)
-        {
-            githubUrl = GithubUrl;
-            accessToken = AccessToken;
-
-            var requestUrl = new UriBuilder(githubUrl);
-            requestUrl.Path = requestUrl.Path.TrimEnd('/') + "/meta";
-
-            using (var httpClientHandler = HostContext.CreateHttpClientHandler())
-            using (var httpClient = HttpClientFactory.Create(httpClientHandler, new VssHttpRetryMessageHandler(3)))
-            using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUrl.Uri))
-            {
-                requestMessage.Headers.Add("Accept", "application/vnd.github.v3+json");
-                httpClient.DefaultRequestHeaders.UserAgent.Add(HostContext.UserAgent);
-
-                var base64EncodingToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"x-access-token:{accessToken}"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodingToken);
-
-                var response = await httpClient.SendAsync(requestMessage, CancellationToken.None);
-                if (response.IsSuccessStatusCode)
-                {
-                    return;
-                }
-                else
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    throw new HttpRequestException($"Fail to authenticate with GitHub: {response.StatusCode} ({response.ReasonPhrase})");
-                }
-            }
-        }
-
-        public async Task<GitHubResult> RevokeInstallationToken()
+        public async Task<GitHubResult> RevokeInstallationToken(Uri GithubUrl, string AccessToken)
         {
             var result = new GitHubResult();
-            var requestUrl = new UriBuilder(githubUrl);
+            var requestUrl = new UriBuilder(GithubUrl);
             requestUrl.Path = requestUrl.Path.TrimEnd('/') + "/installation/token";
 
             using (var httpClientHandler = HostContext.CreateHttpClientHandler())
@@ -81,7 +47,7 @@ namespace GitHub.Runner.Common
                 requestMessage.Headers.Add("Accept", "application/vnd.github.gambit-preview+json");
                 httpClient.DefaultRequestHeaders.UserAgent.Add(HostContext.UserAgent);
 
-                var base64EncodingToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"x-access-token:{accessToken}"));
+                var base64EncodingToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"x-access-token:{AccessToken}"));
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodingToken);
 
                 var response = await httpClient.SendAsync(requestMessage, CancellationToken.None);

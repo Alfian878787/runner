@@ -269,17 +269,6 @@ namespace GitHub.Runner.Worker
                     steps.AddRange(preJobSteps);
                     steps.AddRange(jobSteps);
 
-                    // Check GITHUB_TOKEN
-                    var githubUrl = context.GetGitHubContext("api_url");
-                    if (string.IsNullOrEmpty(githubUrl))
-                    {
-                        githubUrl = "https://api.github.com";
-                    }
-
-                    var githubToken = context.GetGitHubContext("token");
-                    var githubServer = HostContext.GetService<IGitHubServer>();
-                    await githubServer.ConnectAsync(new Uri(githubUrl), githubToken);
-
                     // Prepare for orphan process cleanup
                     _processCleanup = jobContext.Variables.GetBoolean("process.clean") ?? true;
                     if (_processCleanup)
@@ -338,9 +327,16 @@ namespace GitHub.Runner.Worker
                     context.Debug("Starting: Complete job");
 
                     // Revoke GITHUB_TOKEN
-                    context.Output("Revoking GITHUB_TOKEN");
+                    context.Debug("Revoking GITHUB_TOKEN");
+                    var githubUrl = context.GetGitHubContext("api_url");
+                    if (string.IsNullOrEmpty(githubUrl))
+                    {
+                        githubUrl = "https://api.github.com";
+                    }
+
+                    var githubToken = context.GetGitHubContext("token");
                     var githubServer = HostContext.GetService<IGitHubServer>();
-                    var result = await githubServer.RevokeInstallationToken();
+                    var result = await githubServer.RevokeInstallationToken(new Uri(githubUrl), githubToken);
                     if (result.StatusCode == HttpStatusCode.NoContent)
                     {
                         context.Debug("GITHUB_TOKEN revoked");
